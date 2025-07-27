@@ -1,0 +1,20 @@
+# Terraform generated files
+.terraform/
+.terraform.lock.hcl # Optionally commit this if you want fixed provider versions, otherwise ignore
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+.terraformrc
+terraform.rc
+.terraform.lock.hcl
+
+.venv/
+
+.vscode/
+
+.DS_store
+.env
+__pycache__/
+*.pyc
