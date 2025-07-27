@@ -1,224 +1,386 @@
 # Terraform Project for AWS Infrastructure
 
-This project uses Terraform to deploy a scalable and secure AWS infrastructure. It covers state management, network configuration, container image storage, and Kubernetes cluster deployment, adhering to "infrastructure as code" principles for repeatable deployments.
+This project uses Terraform to deploy a scalable and secure AWS infrastructure following Infrastructure as Code (IaC) principles. It includes state management, network configuration, container image storage, and Kubernetes cluster deployment for repeatable and reliable deployments.
 
 ## Project Structure
 
-The project is organized into the several directories. Root Directory (`lesson-7/`) contains:
+The project is organized into several directories within the root directory (`lesson-7/`):
 
-- `main.tf`: the main configuration file that connects and orchestrates all modules.
-- `backend.tf`: remote S3 backend configuration for secure and versioned Terraform state storage.
-- `outputs.tf`: gathers all critical output values from the deployed resources.
-- `modules/`: contains reusable Terraform modules (in separate folders) for each infrastructure component (`s3-backend`, `vpc`, `ecr`, `eks`).
-- `charts/`: contains Helm charts for deploying applications to Kubernetes.
+### Root Directory Structure
 
-## Initialization and Deployment
+```
+lesson-7/
+├── main.tf          # Main configuration file orchestrating all modules
+├── backend.tf       # Remote S3 backend configuration for state storage
+├── outputs.tf       # Critical output values from deployed resources
+├── modules/         # Reusable Terraform modules
+│   ├── s3-backend/  # S3 backend and DynamoDB state locking
+│   ├── vpc/         # Virtual Private Cloud configuration
+│   ├── ecr/         # Elastic Container Registry setup
+│   └── eks/         # Elastic Kubernetes Service cluster
+└── charts/          # Helm charts for Kubernetes applications
+```
 
-To initialize and deploy the infrastructure, use the following commands:
+## Quick Start
 
-1. `terraform init`: initializes the Terraform working directory and downloads the necessary providers
-2. `terraform plan`: generates a plan for the infrastructure deployment
-3. `terraform apply`: applies the plan and creates the infrastructure
-4. `terraform destroy`: destroys the infrastructure and removes all resources
+### Prerequisites
 
-## Usage
+- AWS CLI configured with appropriate credentials
+- Terraform installed (version 1.0+)
+- Docker installed
+- kubectl installed
+- Helm installed
 
-To use this project, simply clone the repository and navigate to the lesson-7 directory: `cd lesson-7`
-Temporarily comment out all code in the `backend.tf` file. Then run the `terraform init` command to initialize the Terraform working directory. After that, you can use `terraform plan` to preview the resources that will be created, and use the `terraform apply` command to deploy the infrastructure. Next, uncomment all code in the `backend.tf` file. Run the `terraform init -reconfigure` command to apply the new configuration and use the created bucket to store the Terraform state file. Then run the `terraform apply` command again to redeploy the infrastructure.
+### Initialization and Deployment Commands
 
-Finally, you can use `terraform destroy` to remove all resources.
+```bash
+# 1. Navigate to project directory
+cd lesson-7
 
-## Module Descriptions
+# 2. Initialize Terraform working directory
+terraform init
 
-### s3-backend
+# 3. Preview infrastructure changes
+terraform plan
 
-The `s3-backend` module creates an S3 bucket to store the Terraform state file. This allows multiple users to collaborate on the infrastructure deployment and ensures that the state file is stored securely. This module also uses `DynamoDB` for state locking.
+# 4. Deploy infrastructure
+terraform apply
 
-### vpc
+# 5. Destroy infrastructure when no longer needed
+terraform destroy
+```
 
-The `vpc` module creates a Virtual Private Cloud (VPC) with a specified CIDR block, subnet configuration and NAT. This provides a secure and isolated network environment for the infrastructure.
+## Deployment Workflow
 
-### ecr
+### Initial Setup Process
 
-The `ecr` module creates an Elastic Container Registry (ECR) repository to store Docker images. This allows for secure and efficient deployment of containerized applications.
+1. **Prepare Backend Configuration**
+
+   - Temporarily comment out all code in `backend.tf`
+   - Run `terraform init` to initialize the working directory
+
+2. **First Deployment**
+
+   - Run `terraform plan` to preview resources
+   - Execute `terraform apply` to create initial infrastructure
+
+3. **Configure Remote State**
+
+   - Uncomment all code in `backend.tf`
+   - Run `terraform init -reconfigure` to migrate state to S3
+   - Execute `terraform apply` again to ensure consistency
+
+4. **Cleanup**
+   - Use `terraform destroy` to remove all resources when done
+
+## Module Documentation
+
+### S3 Backend Module
+
+Creates secure and collaborative Terraform state management.
 
 **Features:**
 
-- Creates ECR repository with specified name
-- Enables image scanning on push for security
-- Configures repository policy for access control
-- Supports image lifecycle management
+- S3 bucket for state file storage
+- DynamoDB table for state locking
+- Versioning and encryption enabled
+- Multi-user collaboration support
+
+**Benefits:**
+
+- Prevents state corruption through locking
+- Enables team collaboration
+- Provides state history and rollback capabilities
+
+### VPC Module
+
+Establishes a secure and isolated network environment.
+
+**Features:**
+
+- Custom VPC with specified CIDR block
+- Public and private subnet configuration
+- NAT Gateway for outbound internet access
+- Internet Gateway for public access
+- Route tables and security groups
+
+**Usage:**
+
+```hcl
+module "vpc" {
+  source = "./modules/vpc"
+  # Configuration parameters defined in module
+}
+```
+
+### ECR Module
+
+Manages Docker container image storage and security.
+
+**Features:**
+
+- ECR repository with specified naming
+- Image scanning on push for vulnerability detection
+- Repository access policies
+- Image lifecycle management
+- Cross-region replication support
 
 **Usage:**
 
 ```hcl
 module "ecr" {
-  source      = "./modules/ecr"
-  ecr_name    = "lesson-5-ecr"
+  source       = "./modules/ecr"
+  ecr_name     = "lesson-5-ecr"
   scan_on_push = true
 }
 ```
 
-### eks
+### EKS Module
 
-The `eks` module creates an Amazon Elastic Kubernetes Service (EKS) cluster with worker nodes. This provides a managed Kubernetes environment for running containerized applications.
+Deploys a managed Kubernetes cluster with worker nodes.
 
 **Features:**
 
-- Creates EKS cluster with specified configuration
-- Provisions worker nodes with auto-scaling capabilities
-- Configures IAM roles and policies for cluster and node access
-- Supports multiple instance types and node groups
+- EKS cluster with specified configuration
+- Auto-scaling worker node groups
+- IAM roles and policies for secure access
+- Multiple instance types support
+- Integration with VPC subnets
 
 **Usage:**
 
 ```hcl
 module "eks" {
-  source          = "./modules/eks"
-  cluster_name    = "eks-cluster-demo"
-  subnet_ids      = module.vpc.public_subnets
-  instance_type   = "t3.medium"
-  desired_size    = 3
-  max_size        = 4
-  min_size        = 2
+  source        = "./modules/eks"
+  cluster_name  = "eks-cluster-demo"
+  subnet_ids    = module.vpc.public_subnets
+  instance_type = "t3.medium"
+  desired_size  = 3
+  max_size      = 4
+  min_size      = 2
 }
 ```
 
 ## Step-by-Step Deployment Guide
 
-### 1. Створіть кластер Kubernetes
+### 1. Create Kubernetes Cluster
 
-Використовуючи Terraform, створіть кластер Kubernetes у вже існуючій мережі (VPC).
+Deploy a Kubernetes cluster in the existing VPC using Terraform.
 
-**Кроки:**
+**Steps:**
 
-1. Перейдіть до директорії проекту: `cd lesson-7`
-2. Ініціалізуйте Terraform: `terraform init`
-3. Перегляньте план розгортання: `terraform plan`
-4. Застосуйте конфігурацію: `terraform apply`
+1. Navigate to project directory:
 
-**Забезпечте доступ до кластера за допомогою kubectl:**
+   ```bash
+   cd lesson-7
+   ```
+
+2. Initialize Terraform:
+
+   ```bash
+   terraform init
+   ```
+
+3. Review deployment plan:
+
+   ```bash
+   terraform plan
+   ```
+
+4. Apply configuration:
+   ```bash
+   terraform apply
+   ```
+
+**Configure kubectl access:**
 
 ```bash
-# Отримайте конфігурацію кластера
+# Get cluster configuration
 aws eks update-kubeconfig --region eu-central-1 --name eks-cluster-demo
 
-# Перевірте підключення
+# Verify connection
 kubectl get nodes
 ```
 
-### 2. Налаштуйте ECR
+### 2. Configure ECR Repository
 
-Використовуючи Terraform, створіть репозиторій в Amazon Elastic Container Registry (ECR).
+Set up Amazon Elastic Container Registry using Terraform.
 
-**Кроки:**
+**ECR Setup:**
 
-1. ECR репозиторій створюється автоматично через Terraform модуль
-2. Отримайте URL репозиторію:
+1. ECR repository is created automatically through Terraform module
+2. Authenticate Docker with ECR:
+   ```bash
+   aws ecr get-login-password --region eu-central-1 | \
+   docker login --username AWS --password-stdin \
+   658301803468.dkr.ecr.eu-central-1.amazonaws.com
+   ```
+
+**Upload Django Docker Image:**
 
 ```bash
-aws ecr get-login-password --region eu-central-1 | docker login --username AWS --password-stdin 658301803468.dkr.ecr.eu-central-1.amazonaws.com
+# Navigate to Django project directory
+cd lesson-4
+
+# Build and push multi-platform image
+docker-compose up
+docker tag yarokrilka/microservice-project:latest 658301803468.dkr.ecr.eu-central-1.amazonaws.com/lesson-5-ecr:latest
+docker push 658301803468.dkr.ecr.eu-central-1.amazonaws.com/lesson-5-ecr:latest
 ```
 
-**Завантажте Docker-образ Django до ECR:**
+### 3. Deploy Helm Chart
 
-```bash
-# Перейдіть до директорії з Django проектом
-cd lesson-4/django
+Create and deploy a comprehensive Helm chart with the following components:
 
-# Створіть multi-platform образ
-docker buildx build --platform linux/amd64,linux/arm64 -t 658301803468.dkr.ecr.eu-central-1.amazonaws.com/lesson-5-ecr:latest --push .
-```
+#### Deployment Configuration
 
-### 3. Створіть Helm чарт
+- Django image from ECR
+- ConfigMap integration via `envFrom`
+- Resource limits and requests
+- Health checks and probes
 
-У Helm-чарті має бути реалізовано:
+#### Service Configuration
 
-#### Deployment
+- LoadBalancer type for external access
+- Port mapping and target ports
+- Service annotations for AWS Load Balancer
 
-- З образом Django з ECR та підключенням ConfigMap (через envFrom)
+#### Horizontal Pod Autoscaler (HPA)
 
-#### Service
-
-- Типу LoadBalancer для зовнішнього доступу
-
-#### HPA (Horizontal Pod Autoscaler)
-
-- Масштабування подів від 2 до 6 при навантаженні > 70%
+- Scaling from 2 to 6 pods
+- CPU utilization threshold > 70%
+- Memory-based scaling metrics
 
 #### ConfigMap
 
-- Для змінних середовища (перенесених із теми 4)
+- Environment variables (migrated from lesson 4)
+- Application configuration
+- Database connection strings
 
-#### values.yaml
+#### Values Configuration
 
-- З параметрами образу, сервісу, конфігурації та autoscaler
+- Image repository and tag parameters
+- Service configuration options
+- Autoscaler thresholds
+- Resource specifications
 
-**Розгортання Helm чарту:**
-
-```bash
-# Перейдіть до директорії з чартом
-cd lesson-7/charts/django-app
-
-# Встановіть чарт
-helm install my-django-app .
-
-# Перевірте статус
-kubectl get pods
-kubectl get services
-kubectl get hpa
-```
-
-**Структура чарту:**
+**Helm Chart Structure:**
 
 ```
 charts/django-app/
-├── Chart.yaml          # Метадані чарту
-├── values.yaml         # Параметри за замовчуванням
+├── Chart.yaml              # Chart metadata and version
+├── values.yaml             # Default configuration values
 └── templates/
-    ├── deployment.yaml # Deployment з ConfigMap
-    ├── service.yaml    # Service типу LoadBalancer
-    ├── hpa.yaml       # Horizontal Pod Autoscaler
-    └── configmap.yaml # ConfigMap для змінних середовища
+    ├── deployment.yaml     # Django deployment with ConfigMap
+    ├── service.yaml        # LoadBalancer service
+    ├── hpa.yaml           # Horizontal Pod Autoscaler
+    ├── configmap.yaml     # Environment variables
+    └── NOTES.txt          # Post-installation notes
 ```
 
-## Terraform Backend Configuration
+**Deploy Helm Chart:**
 
-The `backend.tf` file in the root directory configures Terraform to use S3 as its backend:
+```bash
+# Navigate to chart directory
+cd lesson-7/charts/django-app
 
+# Install the chart
+helm install my-django-app .
+
+# Verify deployment
+kubectl get pods
+kubectl get services
+kubectl get hpa
+
+# Check application logs
+kubectl logs -l app=django-app
 ```
+
+## Backend Configuration
+
+The `backend.tf` file configures Terraform to use S3 for remote state storage:
+
+```hcl
 terraform {
-    backend "s3" {
-        bucket = "your_bucket_name" # Replace with your S3 bucket name
-        key = "lesson-7/terraform.tfstate"
-        region = "eu-central-1"
-        dynamodb_table = "terraform-locks"
-        encrypt = true
-    }
+  backend "s3" {
+    bucket         = "your-terraform-state-bucket"  # Replace with your bucket name
+    key            = "lesson-7/terraform.tfstate"
+    region         = "eu-central-1"
+    dynamodb_table = "terraform-locks"
+    encrypt        = true
+  }
 }
 ```
 
-## Troubleshooting Useful Commands
+**Backend Benefits:**
+
+- Shared state for team collaboration
+- State locking prevents concurrent modifications
+- Encryption at rest for security
+- Versioning for state history
+
+## Monitoring and Troubleshooting
+
+### Essential kubectl Commands
 
 ```bash
-# Перевірка вузлів
-kubectl get nodes
+# Cluster and node information
+kubectl cluster-info
+kubectl get nodes -o wide
 
-# Перевірка подів
-kubectl get pods
-
-# Перевірка сервісів
-kubectl get services
-
-# Логи поду
-kubectl logs <pod-name>
-
-# Опис поду
+# Pod management
+kubectl get pods --all-namespaces
 kubectl describe pod <pod-name>
+kubectl logs <pod-name> --follow
 
-# Перевірка HPA
+# Service inspection
+kubectl get services
+kubectl describe service <service-name>
+
+# ConfigMap verification
+kubectl get configmaps
+kubectl describe configmap <configmap-name>
+
+# HPA monitoring
 kubectl get hpa
+kubectl describe hpa <hpa-name>
 
-# Перевірка ConfigMap
-kubectl get configmap
+# Resource usage
+kubectl top nodes
+kubectl top pods
+```
+
+### Helm Management Commands
+
+```bash
+# List installed releases
+helm list
+
+# Upgrade release
+helm upgrade my-django-app .
+
+# Rollback to previous version
+helm rollback my-django-app 1
+
+# Uninstall release
+helm uninstall my-django-app
+
+# Debug chart templates
+helm template my-django-app . --debug
+```
+
+### AWS-Specific Troubleshooting
+
+```bash
+# Check EKS cluster status
+aws eks describe-cluster --name eks-cluster-demo --region eu-central-1
+
+# List ECR repositories
+aws ecr describe-repositories --region eu-central-1
+
+# Check Load Balancer status
+aws elbv2 describe-load-balancers --region eu-central-1
+
+# View CloudWatch logs
+aws logs describe-log-groups --region eu-central-1
 ```
