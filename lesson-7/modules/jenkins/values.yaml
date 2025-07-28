@@ -34,6 +34,7 @@ controller:
     - docker-plugin:latest
     - docker-workflow:latest
     - job-dsl:latest
+    - plain-credentials:latest 
 
   serviceAccount:
     name: jenkins-sa
@@ -52,6 +53,11 @@ controller:
                       username: nataliia-smalchenko
                       password: github_pat
                       description: GitHub PAT
+                  - string:
+                      scope: GLOBAL
+                      id: postgres-password
+                      secret: admin123AWS23
+                      description: PostgreSQL Database Password
       seed-job: |
         jobs:
           - script: >

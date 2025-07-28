@@ -3,7 +3,7 @@ image:
   tag: "6"
   pullPolicy: IfNotPresent
 service:
-  type: ClusterIP
+  type: LoadBalancer
   port: 8000
 ingress:
   enabled: false
@@ -15,7 +15,7 @@ hpa:
   targetCPUUtilizationPercentage: 70
 config:
   POSTGRES_PORT: 5432
-  POSTGRES_HOST: db
-  POSTGRES_USER: django_user
-  POSTGRES_DB: django_db
-  POSTGRES_PASSWORD: pass9764gd
+  POSTGRES_HOST: myapp-db-cluster.cluster-cpoi0am4exxf.eu-central-1.rds.amazonaws.com
+  POSTGRES_USER: postgres
+  POSTGRES_DB: myapp
+  POSTGRES_PASSWORD: admin123AWS23
