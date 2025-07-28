@@ -208,6 +208,90 @@ module "argo_cd" {
 
 ---
 
+## Universal RDS Module
+
+### Functionality Description
+
+The `rds` module allows you to create either an Aurora Cluster or a standard RDS instance based on the `use_aurora` variable. It automatically creates:
+- A DB Subnet Group (for private or public subnets)
+- A Security Group with port 5432 open (can be changed)
+- A Parameter Group for the selected DB type (RDS/Aurora)
+
+The module supports multiple use cases and works with minimal variable changes.
+
+### Usage Example
+```hcl
+module "rds" {
+  source                = "./modules/rds"
+  name                  = "myapp-db"
+  db_name               = "myapp"
+  username              = "postgres"
+  password              = "<your_password>"
+  vpc_id                = module.vpc.vpc_id
+  subnet_private_ids    = module.vpc.private_subnets
+  subnet_public_ids     = module.vpc.public_subnets
+  use_aurora            = true # or false for standard RDS
+  engine                = "postgres"
+  engine_version        = "14.7"
+  engine_cluster        = "aurora-postgresql"
+  engine_version_cluster= "15.3"
+  instance_class        = "db.t3.medium"
+  multi_az              = false
+  publicly_accessible   = false
+  aurora_replica_count  = 1
+  aurora_instance_count = 2
+  parameters = {
+    max_connections = "100"
+    log_statement   = "all"
+    work_mem        = "4096"
+  }
+  tags = {
+    Environment = "dev"
+  }
+}
+```
+
+### Outputs
+- `rds_endpoint` — endpoint for DB connection
+- `rds_port` — port
+- `rds_db_name` — database name
+- `rds_username` — user
+- `security_group_id` — SG for access
+- `subnet_group_name` — DB subnet group
+- Aurora-specific: `aurora_reader_endpoint`, `aurora_writer_instance_id`, `aurora_reader_instance_ids`
+
+### Variable Descriptions
+- `use_aurora` (bool): if true — creates Aurora Cluster, if false — standard RDS instance
+- `name` (string): resource name
+- `db_name` (string): database name
+- `username` (string): master user
+- `password` (string): password
+- `vpc_id` (string): VPC ID
+- `subnet_private_ids` (list): private subnets
+- `subnet_public_ids` (list): public subnets
+- `engine` (string): DB type for RDS (e.g., "postgres")
+- `engine_version` (string): version for RDS
+- `engine_cluster` (string): type for Aurora (e.g., "aurora-postgresql")
+- `engine_version_cluster` (string): version for Aurora
+- `instance_class` (string): instance class (e.g., "db.t3.micro")
+- `multi_az` (bool): whether to use Multi-AZ
+- `publicly_accessible` (bool): whether DB is publicly accessible
+- `parameters` (map): additional parameters for parameter group
+- `aurora_replica_count` (number): number of Aurora replicas
+- `aurora_instance_count` (number): number of Aurora instances (primary + replicas)
+- `backup_retention_period` (string): backup retention period
+- `tags` (map): tags
+- `parameter_group_family_aurora` (string): parameter group family for Aurora
+- `parameter_group_family_rds` (string): parameter group family for RDS
+
+### How to change DB type, engine, instance class
+- For Aurora: `use_aurora = true`, `engine_cluster = "aurora-postgresql"`, `engine_version_cluster = "15.3"`
+- For standard RDS: `use_aurora = false`, `engine = "postgres"`, `engine_version = "14.7"`
+- Instance class: change `instance_class` (e.g., "db.t3.medium")
+- Multi-AZ: `multi_az = true`
+
+---
+
 ## CI/CD Pipeline Description
 
 ### Jenkins + Helm + Terraform
@@ -251,3 +335,20 @@ This will provision all infrastructure, including ECR, VPC, EKS, Jenkins, and Ar
 - The Jenkinsfile for the pipeline is located in the [django-app repository](https://github.com/nataliia-smalchenko/django-app).
 - All infrastructure is fully automated and reproducible via Terraform.
 - The pipeline is designed for educational/demo purposes and can be extended for production use.
+
+---
+
+## How to access the Django app via port-forward
+
+If the service is of type ClusterIP or LoadBalancer without an external IP, you can access the app locally via port-forward:
+
+```sh
+kubectl port-forward svc/django-app-django 8000:80 -n default
+```
+
+Then open in your browser:
+```
+http://localhost:8000/
+```
+
+---
