@@ -8,11 +8,11 @@ output "dynamodb_table_name" {
   value       = module.s3_backend.dynamodb_table_name
 }
 
-# output "jenkins_release" {
-#   value = module.jenkins.jenkins_release_name
-# }
+output "jenkins_release" {
+  value = module.jenkins.jenkins_release_name
+}
 
-# output "jenkins_namespace" {
-#   value = module.jenkins.jenkins_namespace
-# }
+output "jenkins_namespace" {
+  value = module.jenkins.jenkins_namespace
+}
 

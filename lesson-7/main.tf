@@ -32,13 +32,38 @@ module "eks" {
   min_size        = 2                             # Мінімальна кількість нодів
 }
 
-# module "jenkins" {
-#   source       = "./modules/jenkins"
-#   cluster_name = module.eks.eks_cluster_name
-#   kubeconfig = "~/.kube/config"
-#   providers = {
-#     helm = helm
-#   }
-#   oidc_provider_arn = module.eks.oidc_provider_arn
-#   oidc_provider_url = module.eks.oidc_provider_url
-# }
+
+
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.eks_cluster_name
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.eks_cluster_name
+}
+
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = data.aws_eks_cluster.cluster.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+}
+
+module "jenkins" {
+  source       = "./modules/jenkins"
+  cluster_name = module.eks.eks_cluster_name
+  kubeconfig = "~/.kube/config"
+  providers = {
+    helm = helm
+  }
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+}
