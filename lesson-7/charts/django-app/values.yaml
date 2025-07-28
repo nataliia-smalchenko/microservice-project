@@ -1,6 +1,6 @@
 image:
   repository: 658301803468.dkr.ecr.eu-central-1.amazonaws.com/lesson-5-ecr
-  tag: "19"
+  tag: "1"
   pullPolicy: IfNotPresent
 service:
   type: ClusterIP
