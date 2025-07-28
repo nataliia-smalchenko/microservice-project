@@ -69,6 +69,143 @@ lesson-7/
 │       └── values.yaml     # ConfigMap with environment variables
 ```
 
+ Module Documentation
+
+### S3 Backend Module
+
+Creates secure and collaborative Terraform state management.
+
+**Features:**
+
+- S3 bucket for state file storage
+- DynamoDB table for state locking
+- Versioning and encryption enabled
+- Multi-user collaboration support
+
+**Benefits:**
+
+- Prevents state corruption through locking
+- Enables team collaboration
+- Provides state history and rollback capabilities
+
+### VPC Module
+
+Establishes a secure and isolated network environment.
+
+**Features:**
+
+- Custom VPC with specified CIDR block
+- Public and private subnet configuration
+- NAT Gateway for outbound internet access
+- Internet Gateway for public access
+- Route tables and security groups
+
+**Usage:**
+
+```hcl
+module "vpc" {
+  source = "./modules/vpc"
+  # Configuration parameters defined in module
+}
+```
+
+### ECR Module
+
+Manages Docker container image storage and security.
+
+**Features:**
+
+- ECR repository with specified naming
+- Image scanning on push for vulnerability detection
+- Repository access policies
+- Image lifecycle management
+- Cross-region replication support
+
+**Usage:**
+
+```hcl
+module "ecr" {
+  source       = "./modules/ecr"
+  ecr_name     = "lesson-5-ecr"
+  scan_on_push = true
+}
+```
+
+### EKS Module
+
+Deploys a managed Kubernetes cluster with worker nodes.
+
+**Features:**
+
+- EKS cluster with specified configuration
+- Auto-scaling worker node groups
+- IAM roles and policies for secure access
+- Multiple instance types support
+- Integration with VPC subnets
+
+**Usage:**
+
+```hcl
+module "eks" {
+  source        = "./modules/eks"
+  cluster_name  = "eks-cluster-demo"
+  subnet_ids    = module.vpc.public_subnets
+  instance_type = "t3.medium"
+  desired_size  = 3
+  max_size      = 4
+  min_size      = 2
+}
+```
+
+### Jenkins Module
+
+Automates the installation and configuration of Jenkins using Helm and Terraform.
+
+**Features:**
+
+- Installs Jenkins via Helm chart
+- Configures Jenkins to run on Kubernetes with dynamic agents
+- Integrates with Kaniko for Docker builds and Git for SCM
+- Manages credentials and resource settings via values.yaml
+- Outputs Jenkins admin password and service URL
+
+**Usage:**
+
+```hcl
+module "jenkins" {
+  source       = "./modules/jenkins"
+  cluster_name = module.eks.eks_cluster_name
+  kubeconfig   = "~/.kube/config"
+  providers = {
+    helm = helm
+  }
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+}
+```
+
+### Argo CD Module
+
+Automates the installation and configuration of Argo CD using Helm and Terraform.
+
+**Features:**
+
+- Installs Argo CD via Helm chart
+- Manages Argo CD Applications and Repositories via subcharts or Kubernetes manifests
+- Enables GitOps deployment and automatic synchronization of applications
+- Supports custom values.yaml for advanced configuration
+- Outputs Argo CD admin password and service URL
+
+**Usage:**
+
+```hcl
+module "argo_cd" {
+  source        = "./modules/argo-cd"
+  namespace     = "argocd"
+  chart_version = "5.46.4"
+}
+```
+
 ---
 
 ## CI/CD Pipeline Description
