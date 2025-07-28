@@ -32,14 +32,14 @@ module "eks" {
   min_size        = 2                             # Мінімальна кількість нодів
 }
 
-
-
 data "aws_eks_cluster" "cluster" {
   name = module.eks.eks_cluster_name
+  depends_on = [module.eks]
 }
 
 data "aws_eks_cluster_auth" "cluster" {
   name = module.eks.eks_cluster_name
+  depends_on = [module.eks]
 }
 
 
@@ -66,4 +66,10 @@ module "jenkins" {
   }
   oidc_provider_arn = module.eks.oidc_provider_arn
   oidc_provider_url = module.eks.oidc_provider_url
+}
+
+module "argo_cd" {
+  source       = "./modules/argo-cd"
+  namespace    = "argocd"
+  chart_version = "5.46.4"
 }

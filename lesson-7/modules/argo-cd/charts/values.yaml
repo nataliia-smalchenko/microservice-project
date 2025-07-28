@@ -1,0 +1,28 @@
+applications:
+  - name: django-app
+    namespace: default
+    project: default
+    source:
+      repoURL: https://github.com/nataliia-smalchenko/microservice-project.git
+      path: lesson-7/charts/django-app
+      targetRevision: main
+      helm:
+        valueFiles:
+          - values.yaml
+    destination:
+      server: https://kubernetes.default.svc
+      namespace: default
+    syncPolicy:
+      automated:
+        prune: true
+        selfHeal: true
+
+repositories:
+  - name: microservice-project
+    url: https://github.com/nataliia-smalchenko/microservice-project.git
+    username: nataliia-smalchenko
+    password: github_pat
+
+repoConfig:
+  insecure: "true"
+  enableLfs: "true"

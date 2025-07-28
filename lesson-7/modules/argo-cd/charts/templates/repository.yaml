@@ -1,0 +1,32 @@
+{{- range .Values.repositories }}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .name }}-repo
+  namespace: argocd
+  labels:
+    argocd.argoproj.io/secret-type: repository
+stringData:
+  url: {{ .url }}
+  {{- if .username }}
+  username: {{ .username }}
+  {{- end }}
+  {{- if .password }}
+  password: {{ .password }}
+  {{- end }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Repository
+metadata:
+  name: {{ .name }}
+  namespace: argocd
+spec:
+  url: {{ .url }}
+  {{- if .username }}
+  username: {{ .username }}
+  {{- end }}
+  {{- if .password }}
+  password: {{ .password }}
+  {{- end }}
+{{- end }}
