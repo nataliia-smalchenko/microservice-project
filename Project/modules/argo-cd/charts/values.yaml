@@ -4,7 +4,7 @@ applications:
     project: default
     source:
       repoURL: https://github.com/nataliia-smalchenko/microservice-project.git
-      path: lesson-7/charts/django-app
+      path: Project/charts/django-app
       targetRevision: main
       helm:
         valueFiles:

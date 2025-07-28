@@ -32,6 +32,51 @@ module "eks" {
   min_size        = 2                             # Мінімальна кількість нодів
 }
 
+
+data "aws_eks_cluster" "cluster" {
+  name = module.eks.eks_cluster_name
+  depends_on = [module.eks]
+}
+
+data "aws_eks_cluster_auth" "cluster" {
+  name = module.eks.eks_cluster_name
+  depends_on = [module.eks]
+}
+
+
+provider "kubernetes" {
+  host                   = data.aws_eks_cluster.cluster.endpoint
+  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+  token                  = data.aws_eks_cluster_auth.cluster.token
+}
+
+provider "helm" {
+  kubernetes = {
+    host                   = data.aws_eks_cluster.cluster.endpoint
+    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
+    token                  = data.aws_eks_cluster_auth.cluster.token
+  }
+}
+
+module "jenkins" {
+  source       = "./modules/jenkins"
+  cluster_name = module.eks.eks_cluster_name
+  kubeconfig = "~/.kube/config"
+  providers = {
+    helm = helm
+  }
+  oidc_provider_arn = module.eks.oidc_provider_arn
+  oidc_provider_url = module.eks.oidc_provider_url
+  depends_on = [module.eks]
+}
+
+module "argo_cd" {
+  source       = "./modules/argo-cd"
+  namespace    = "argocd"
+  chart_version = "5.46.4"
+  depends_on = [module.eks]
+}
+
 module "rds" {
   source = "./modules/rds"
 
@@ -73,45 +118,20 @@ module "rds" {
   }
 }
 
-
-data "aws_eks_cluster" "cluster" {
-  name = module.eks.eks_cluster_name
+resource "helm_release" "prometheus" {
+  name       = "prometheus"
+  repository = "https://prometheus-community.github.io/helm-charts"
+  chart      = "prometheus"
+  namespace  = "monitoring"
+  create_namespace = true
   depends_on = [module.eks]
 }
 
-data "aws_eks_cluster_auth" "cluster" {
-  name = module.eks.eks_cluster_name
+resource "helm_release" "grafana" {
+  name       = "grafana"
+  repository = "https://grafana.github.io/helm-charts"
+  chart      = "grafana"
+  namespace  = "monitoring"
+  create_namespace = true
   depends_on = [module.eks]
-}
-
-
-provider "kubernetes" {
-  host                   = data.aws_eks_cluster.cluster.endpoint
-  cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
-  token                  = data.aws_eks_cluster_auth.cluster.token
-}
-
-provider "helm" {
-  kubernetes = {
-    host                   = data.aws_eks_cluster.cluster.endpoint
-    cluster_ca_certificate = base64decode(data.aws_eks_cluster.cluster.certificate_authority[0].data)
-    token                  = data.aws_eks_cluster_auth.cluster.token
-  }
-}
-
-module "jenkins" {
-  source       = "./modules/jenkins"
-  cluster_name = module.eks.eks_cluster_name
-  kubeconfig = "~/.kube/config"
-  providers = {
-    helm = helm
-  }
-  oidc_provider_arn = module.eks.oidc_provider_arn
-  oidc_provider_url = module.eks.oidc_provider_url
-}
-
-module "argo_cd" {
-  source       = "./modules/argo-cd"
-  namespace    = "argocd"
-  chart_version = "5.46.4"
 }
