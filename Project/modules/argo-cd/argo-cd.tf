@@ -4,9 +4,15 @@ resource "helm_release" "argo_cd" {
   repository = "https://argoproj.github.io/argo-helm"
   chart      = "argo-cd"
   version    = var.chart_version
+  
+  depends_on = [terraform_data.cluster_ready]
 
   values = [
-    file("${path.module}/values.yaml")
+    templatefile("${path.module}/values.yaml", {
+      repo_url      = var.repo_url
+      repo_username = var.repo_username
+      repo_password = var.repo_password
+    })
   ]
 
   create_namespace = true
@@ -14,46 +20,45 @@ resource "helm_release" "argo_cd" {
   timeout = 600
 }
 
-# Створення Repository для ArgoCD
-resource "kubernetes_secret" "argo_repository" {
+# Wait for Argo CD CRDs to be available
+resource "time_sleep" "wait_for_crds" {
   depends_on = [helm_release.argo_cd]
-  
+  create_duration = "300s"
+}
+
+# Create repository secret
+resource "kubernetes_secret" "repo_secret" {
   metadata {
     name      = "microservice-project-repo"
-    namespace = "argocd"
+    namespace = var.namespace
     labels = {
       "argocd.argoproj.io/secret-type" = "repository"
     }
   }
-  
+
   data = {
-    url      = base64encode("https://github.com/nataliia-smalchenko/microservice-project.git")
-    username = base64encode("nataliia-smalchenko")
-    password = base64encode("github_pat")
+    url      = var.repo_url
+    username = var.repo_username
+    password = var.repo_password
   }
+
+  depends_on = [time_sleep.wait_for_crds]
 }
 
-# Створення Application для ArgoCD
-resource "kubernetes_manifest" "argo_application" {
-  depends_on = [helm_release.argo_cd, kubernetes_secret.argo_repository]
-  
+# Create Argo CD Application
+resource "kubernetes_manifest" "django_app" {
   manifest = {
     apiVersion = "argoproj.io/v1alpha1"
     kind       = "Application"
     metadata = {
       name      = "django-app"
-      namespace = "argocd"
-      labels = {
-        app        = "django-app"
-        managed-by = "argocd"
-      }
-      finalizers = ["resources-finalizer.argocd.argoproj.io"]
+      namespace = var.namespace
     }
     spec = {
       project = "default"
       source = {
-        repoURL        = "https://github.com/nataliia-smalchenko/microservice-project.git"
-        path           = "lesson-7/charts/django-app"
+        repoURL        = var.repo_url
+        path           = "Project/charts/django-app"
         targetRevision = "main"
         helm = {
           valueFiles = ["values.yaml"]
@@ -68,13 +73,10 @@ resource "kubernetes_manifest" "argo_application" {
           prune    = true
           selfHeal = true
         }
-        syncOptions = [
-          "CreateNamespace=true",
-          "PrunePropagationPolicy=foreground",
-          "PruneLast=true"
-        ]
       }
     }
   }
+
+  depends_on = [kubernetes_secret.repo_secret]
 }
 

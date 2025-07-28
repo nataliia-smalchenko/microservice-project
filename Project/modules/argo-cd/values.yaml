@@ -20,3 +20,11 @@ controller:
     requests:
       cpu: 250m
       memory: 256Mi
+
+configs:
+  repositories:
+    microservice-project-repo:
+      url: ${repo_url}
+      username: ${repo_username}
+      password: ${repo_password}
+      type: git
