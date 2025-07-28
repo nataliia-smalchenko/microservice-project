@@ -16,3 +16,22 @@ output "jenkins_namespace" {
   value = module.jenkins.jenkins_namespace
 }
 
+output "rds_endpoint" {
+  description = "RDS instance endpoint"
+  value       = module.rds.rds_endpoint
+}
+
+output "rds_db_name" {
+  description = "Database name for the RDS instance"
+  value       = module.rds.rds_db_name
+}
+
+output "rds_username" {
+  description = "Master username for the RDS instance"
+  value       = module.rds.rds_username
+}
+
+output "rds_port" {
+  description = "Port for the RDS instance"
+  value       = module.rds.rds_port
+}
