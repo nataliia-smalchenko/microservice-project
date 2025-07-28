@@ -246,19 +246,6 @@ This will provision all infrastructure, including ECR, VPC, EKS, Jenkins, and Ar
 - Login as `admin` (initial password: see Terraform output or run `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`).
 - You will see the application status, sync state, and deployment history.
 
----
-
-## Evaluation Criteria (100 points)
-| Component                                             | Points |
-|------------------------------------------------------|--------|
-| Jenkins + Terraform + Helm installation              | 20     |
-| Working Jenkins pipeline (build, push, update Git)   | 30     |
-| Argo CD + Terraform + Helm installation              | 20     |
-| Argo application with full Helm chart sync           | 20     |
-| README.md with description, commands, CI/CD diagram  | 10     |
-
----
-
 
 ## Notes
 - The Jenkinsfile for the pipeline is located in the [django-app repository](https://github.com/nataliia-smalchenko/django-app).
