@@ -1,12 +1,22 @@
 # Django Microservice Project: Full CI/CD with Jenkins, Helm, Terraform, and Argo CD
 
 ## Overview
-This project demonstrates a complete CI/CD pipeline for a Django application using Jenkins, Helm, Terraform, and Argo CD. The pipeline is designed to:
+This project demonstrates a complete CI/CD pipeline for a Django application using Jenkins, Helm, Terraform, and Argo CD, with comprehensive monitoring using Prometheus and Grafana. The pipeline is designed to:
 
 1. Automatically build a Docker image for the Django application.
 2. Publish the image to Amazon ECR.
 3. Update the Helm chart in the repository with the correct image tag.
 4. Synchronize the application in the Kubernetes cluster via Argo CD, which tracks changes from Git.
+5. Monitor the entire infrastructure and applications using Prometheus and Grafana.
+
+### Key Components:
+- **Jenkins**: CI/CD automation and pipeline execution
+- **Argo CD**: GitOps continuous deployment
+- **Prometheus**: Metrics collection and monitoring
+- **Grafana**: Metrics visualization and dashboards
+- **Amazon EKS**: Managed Kubernetes cluster
+- **Amazon ECR**: Container registry
+- **Terraform**: Infrastructure as Code
 
 The Jenkins pipeline logic is defined in the [Jenkinsfile](https://github.com/nataliia-smalchenko/django-app/blob/main/Jenkinsfile) in the `django-app` repository.
 
@@ -69,7 +79,23 @@ lesson-7/
 │       └── values.yaml     # ConfigMap with environment variables
 ```
 
- Module Documentation
+## Infrastructure Components
+
+The project deploys the following infrastructure components:
+
+- **VPC with public/private subnets** across 3 availability zones
+- **EKS cluster** with managed node groups
+- **ECR repositories** for container images
+- **RDS Aurora PostgreSQL** for database
+- **S3 + DynamoDB** for Terraform state management
+- **Jenkins** for CI/CD pipelines
+- **Argo CD** for GitOps deployment
+- **Prometheus** for metrics collection
+- **Grafana** for monitoring dashboards
+
+---
+
+## Module Documentation
 
 ### S3 Backend Module
 
@@ -330,6 +356,165 @@ This will provision all infrastructure, including ECR, VPC, EKS, Jenkins, and Ar
 - Login as `admin` (initial password: see Terraform output or run `kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d`).
 - You will see the application status, sync state, and deployment history.
 
+---
+
+## Monitoring with Prometheus and Grafana
+
+This project includes monitoring infrastructure using Prometheus for metrics collection and Grafana for visualization.
+
+### Prometheus
+Prometheus is deployed in the `monitoring` namespace and automatically discovers and scrapes metrics from:
+- Kubernetes cluster components
+- Node metrics
+- Pod and container metrics
+- Application metrics (if exposed)
+
+**Features:**
+- Automatic service discovery
+- Built-in alerting rules
+- Persistent storage for metrics
+- Web UI for querying metrics
+
+### Grafana
+Grafana provides rich dashboards and visualization for the metrics collected by Prometheus.
+
+**Features:**
+- Pre-configured Prometheus data source
+- Built-in Kubernetes dashboards
+- Custom dashboard creation
+- Alerting and notification support
+
+### Accessing Monitoring Services
+
+**Prometheus:**
+```bash
+kubectl port-forward svc/prometheus-server 9090:80 -n monitoring
+```
+Then open: http://localhost:9090
+
+**Grafana:**
+```bash
+kubectl port-forward svc/grafana 3000:80 -n monitoring
+```
+Then open: http://localhost:3000
+
+Default Grafana credentials:
+- Username: `admin`
+- Password: Get from secret: `kubectl get secret grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 -d`
+
+---
+
+## Testing and Verification Commands
+
+### 1. Infrastructure Deployment
+Deploy the infrastructure:
+```bash
+terraform init
+terraform apply
+```
+
+### 2. Verify Resource Status
+Check the status of all deployed resources:
+```bash
+# Jenkins resources
+kubectl get all -n jenkins
+
+# Argo CD resources
+kubectl get all -n argocd
+
+# Monitoring resources (Prometheus & Grafana)
+kubectl get all -n monitoring
+
+# Check all namespaces
+kubectl get namespaces
+
+# Check cluster nodes
+kubectl get nodes
+```
+
+### 3. Access Services via Port-Forward
+
+**Jenkins:**
+```bash
+kubectl port-forward svc/jenkins 8080:8080 -n jenkins
+```
+Access: http://localhost:8080
+
+**Argo CD:**
+```bash
+kubectl port-forward svc/argocd-server 8081:443 -n argocd
+```
+Access: https://localhost:8081
+
+**Grafana:**
+```bash
+kubectl port-forward svc/grafana 3000:80 -n monitoring
+```
+Access: http://localhost:3000
+
+**Prometheus:**
+```bash
+kubectl port-forward svc/prometheus-server 9090:80 -n monitoring
+```
+Access: http://localhost:9090
+
+### 4. Get Service Credentials
+
+**Jenkins Admin Password:**
+```bash
+kubectl get secret jenkins -n jenkins -o jsonpath="{.data.jenkins-admin-password}" | base64 -d
+```
+
+**Argo CD Admin Password:**
+```bash
+kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath="{.data.password}" | base64 -d
+```
+
+**Grafana Admin Password:**
+```bash
+kubectl get secret grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 -d
+```
+
+### 5. Monitor Application Deployment
+
+**Watch pods in real-time:**
+```bash
+kubectl get pods -A -w
+```
+
+**Check application logs:**
+```bash
+# Django app logs
+kubectl logs -f deployment/django-app-django -n default
+
+# Jenkins logs
+kubectl logs -f deployment/jenkins -n jenkins
+
+# Argo CD logs
+kubectl logs -f deployment/argocd-server -n argocd
+```
+
+### 6. Verify Monitoring Stack
+
+**Check Prometheus targets:**
+- Go to Prometheus UI → Status → Targets
+- Verify all targets are "UP"
+
+**Check Grafana dashboards:**
+- Login to Grafana
+- Navigate to Dashboards
+- Import Kubernetes dashboards from Grafana.com (IDs: 315, 1860, 6417)
+
+**Test metrics collection:**
+```bash
+# Check if Prometheus is scraping metrics
+curl http://localhost:9090/api/v1/query?query=up
+
+# Check Grafana API
+curl -u admin:$(kubectl get secret grafana -n monitoring -o jsonpath="{.data.admin-password}" | base64 -d) http://localhost:3000/api/health
+```
+
+---
 
 ## Notes
 - The Jenkinsfile for the pipeline is located in the [django-app repository](https://github.com/nataliia-smalchenko/django-app).
