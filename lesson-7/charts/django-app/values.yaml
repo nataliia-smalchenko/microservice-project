@@ -1,6 +1,6 @@
 image:
   repository: 658301803468.dkr.ecr.eu-central-1.amazonaws.com/lesson-5-ecr
-  tag: "6"
+  tag: "7"
   pullPolicy: IfNotPresent
 service:
   type: LoadBalancer
